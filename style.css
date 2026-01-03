@@ -1,0 +1,44 @@
+body {
+  font-family: system-ui, sans-serif;
+  max-width: 720px;
+  margin: auto;
+  padding: 12px;
+  background: #f8fafc;
+  color: #333;
+}
+
+h1 {
+  text-align: center;
+}
+
+.select-area {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+select, input, button {
+  padding: 6px 8px;
+}
+
+#result {
+  margin-top: 20px;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.menu-item {
+  margin-bottom: 16px;
+}
+
+.menu-img {
+  max-width: 200px;
+  height: auto;
+  margin-top: 4px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}

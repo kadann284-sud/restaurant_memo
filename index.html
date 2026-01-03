@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>飲食店メモ</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>飲食店メモ</h1>
+
+  <div class="select-area">
+    <label for="itemSelect">項目を選択:</label>
+    <select id="itemSelect">
+      <option value="">-- 選択してください --</option>
+    </select>
+
+    <label for="categorySelect">カテゴリ:</label>
+    <select id="categorySelect" disabled>
+      <option value="">-- 項目を先に選択 --</option>
+    </select>
+
+    <input type="text" id="searchInput" placeholder="検索ワード">
+    <button id="searchBtn">検索</button>
+  </div>
+
+  <div id="result"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
