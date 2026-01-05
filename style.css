@@ -23,6 +23,11 @@ select, input, button {
   padding: 6px 8px;
 }
 
+select:disabled {
+  background: #e5e7eb;
+  color: #888;
+}
+
 #result {
   margin-top: 20px;
   padding: 12px;

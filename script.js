@@ -7,162 +7,155 @@ fetch('data.json')
   .then(res => res.json())
   .then(json => {
     data = json;
-    populateItemSelect();
+    initItemSelect();
   });
 
 // =======================
-// 項目セレクト初期化
+// セレクト取得
 // =======================
-function populateItemSelect() {
-  const select = document.getElementById('itemSelect');
-  select.innerHTML = '<option value="">-- 選択してください --</option>';
+const itemSelect = document.getElementById('itemSelect');
+const categorySelect = document.getElementById('categorySelect');
+const typeSelect = document.getElementById('typeSelect');
+const type2Select = document.getElementById('type2Select');
 
+// =======================
+// 項目 初期化
+// =======================
+function initItemSelect() {
   Object.keys(data).forEach(item => {
-    const option = document.createElement('option');
-    option.value = item;
-    option.textContent = item;
-    select.appendChild(option);
+    itemSelect.appendChild(new Option(item, item));
   });
 }
 
 // =======================
-// 項目選択 → カテゴリ更新
+// 項目 → カテゴリ
 // =======================
-document.getElementById('itemSelect').addEventListener('change', e => {
-  const categorySelect = document.getElementById('categorySelect');
-  const selectedItem = e.target.value;
+itemSelect.addEventListener('change', () => {
+  resetSelect(categorySelect);
+  resetSelect(typeSelect);
+  resetSelect(type2Select);
 
-  categorySelect.innerHTML = '';
+  disableSelect(categorySelect);
+  disableSelect(typeSelect);
+  disableSelect(type2Select);
 
-  if (
-    selectedItem &&
-    typeof data[selectedItem] === 'object' &&
-    !Array.isArray(data[selectedItem])
-  ) {
-    categorySelect.disabled = false;
-    categorySelect.appendChild(new Option('-- カテゴリを選択 --', ''));
-    Object.keys(data[selectedItem]).forEach(cat => {
-      categorySelect.appendChild(new Option(cat, cat));
-    });
-  } else {
-    categorySelect.disabled = true;
-    categorySelect.appendChild(new Option('-- カテゴリなし --', ''));
-  }
+  const item = itemSelect.value;
+  if (!item) return;
+
+  const value = data[item];
+
+  // 次がオブジェクトでなければ終了
+  if (!value || Array.isArray(value)) return;
+
+  enableSelect(categorySelect);
+  Object.keys(value).forEach(cat => {
+    categorySelect.appendChild(new Option(cat, cat));
+  });
 });
 
 // =======================
-// 検索 / 一覧表示
+// カテゴリ → 種類
 // =======================
-document.getElementById('searchBtn').addEventListener('click', () => {
-  const selectedItem = document.getElementById('itemSelect').value;
-  const selectedCategory = document.getElementById('categorySelect').value;
-  const keyword = document.getElementById('searchInput').value.trim();
-  const container = document.getElementById('result');
+categorySelect.addEventListener('change', () => {
+  resetSelect(typeSelect);
+  resetSelect(type2Select);
 
-  container.innerHTML = '';
+  disableSelect(typeSelect);
+  disableSelect(type2Select);
+
+  const item = itemSelect.value;
+  const category = categorySelect.value;
+  if (!item || !category) return;
+
+  const value = data[item][category];
+
+  if (!value || Array.isArray(value)) return;
+
+  enableSelect(typeSelect);
+  Object.keys(value).forEach(type => {
+    typeSelect.appendChild(new Option(type, type));
+  });
+});
+
+// =======================
+// 種類 → 種類2
+// =======================
+typeSelect.addEventListener('change', () => {
+  resetSelect(type2Select);
+  disableSelect(type2Select);
+
+  const item = itemSelect.value;
+  const category = categorySelect.value;
+  const type = typeSelect.value;
+  if (!item || !category || !type) return;
+
+  const value = data[item][category][type];
+
+  if (!value || Array.isArray(value)) return;
+
+  enableSelect(type2Select);
+  Object.keys(value).forEach(t2 => {
+    type2Select.appendChild(new Option(t2, t2));
+  });
+});
+
+// =======================
+// 検索
+// =======================
+document.getElementById('searchBtn').addEventListener('click', search);
+
+function search() {
+  const item = itemSelect.value;
+  const category = categorySelect.value;
+  const type = typeSelect.value;
+  const type2 = type2Select.value;
+  const keyword = document.getElementById('searchInput').value.trim();
 
   const results = [];
 
-  // =======================
-  // 検索モード
-  // =======================
-  if (keyword) {
+  traverse(data, (obj, path) => {
+    if (item && path.item !== item) return;
+    if (category && path.category !== category) return;
+    if (type && path.type !== type) return;
+    if (type2 && path.type2 !== type2) return;
 
-    // ▼ 項目未選択 → 全項目横断検索
-    if (!selectedItem) {
-      Object.entries(data).forEach(([itemName, itemValue]) => {
-        collectMatches(itemName, '', itemValue, keyword, results);
-      });
+    if (!keyword || obj.メニュー.includes(keyword) || obj.内容.includes(keyword)) {
+      results.push({ ...path, ...obj });
     }
+  });
 
-    // ▼ 項目のみ選択 → その項目すべて検索
-    else if (selectedItem && !selectedCategory) {
-      collectMatches(selectedItem, '', data[selectedItem], keyword, results);
-    }
+  render(results);
+}
 
-    // ▼ 項目＋カテゴリ選択 → そのカテゴリのみ検索
-    else {
-      data[selectedItem][selectedCategory].forEach(d => {
-        if (d.メニュー.includes(keyword) || d.内容.includes(keyword)) {
-          results.push({ item: selectedItem, category: selectedCategory, ...d });
-        }
-      });
-    }
-
-    displayResults(results);
+// =======================
+// 再帰探索
+// =======================
+function traverse(node, callback, path = {}) {
+  if (Array.isArray(node)) {
+    node.forEach(obj => callback(obj, path));
     return;
   }
 
-  // =======================
-  // 一覧表示モード（検索なし）
-  // =======================
+  Object.entries(node).forEach(([key, value]) => {
+    const nextPath = { ...path };
 
-  // ▼ 項目のみ選択 → 全カテゴリ一覧
-  if (selectedItem && !selectedCategory) {
-    collectAll(selectedItem, data[selectedItem], results);
-  }
+    if (!path.item) nextPath.item = key;
+    else if (!path.category) nextPath.category = key;
+    else if (!path.type) nextPath.type = key;
+    else if (!path.type2) nextPath.type2 = key;
 
-  // ▼ 項目＋カテゴリ選択 → カテゴリ一覧
-  else if (selectedItem && selectedCategory) {
-    data[selectedItem][selectedCategory].forEach(d => {
-      results.push({ item: selectedItem, category: selectedCategory, ...d });
-    });
-  }
-
-  displayResults(results);
-});
-
-// =======================
-// 検索用 共通関数
-// =======================
-function collectMatches(itemName, categoryName, value, keyword, results) {
-
-  // 配列（値段など）
-  if (Array.isArray(value)) {
-    value.forEach(d => {
-      if (d.メニュー.includes(keyword) || d.内容.includes(keyword)) {
-        results.push({ item: itemName, category: categoryName, ...d });
-      }
-    });
-  }
-
-  // オブジェクト（カテゴリあり）
-  else {
-    Object.entries(value).forEach(([cat, list]) => {
-      list.forEach(d => {
-        if (d.メニュー.includes(keyword) || d.内容.includes(keyword)) {
-          results.push({ item: itemName, category: cat, ...d });
-        }
-      });
-    });
-  }
+    traverse(value, callback, nextPath);
+  });
 }
 
 // =======================
-// 一覧表示用 共通関数
+// 表示
 // =======================
-function collectAll(itemName, value, results) {
-  if (Array.isArray(value)) {
-    value.forEach(d => {
-      results.push({ item: itemName, category: '', ...d });
-    });
-  } else {
-    Object.entries(value).forEach(([cat, list]) => {
-      list.forEach(d => {
-        results.push({ item: itemName, category: cat, ...d });
-      });
-    });
-  }
-}
-
-// =======================
-// 表示処理
-// =======================
-function displayResults(results) {
+function render(results) {
   const container = document.getElementById('result');
   container.innerHTML = '';
 
-  if (!results || results.length === 0) {
+  if (results.length === 0) {
     container.textContent = '該当なし';
     return;
   }
@@ -171,17 +164,28 @@ function displayResults(results) {
     const div = document.createElement('div');
     div.className = 'menu-item';
 
-    let html = `
+    div.innerHTML = `
       <strong>${d.メニュー}</strong><br>
       ${d.内容}<br>
-      <small>【${d.item}${d.category ? ' / ' + d.category : ''}】</small>
+      <small>【${[d.item, d.category, d.type, d.type2].filter(Boolean).join(' / ')}】</small>
+      ${d.画像 ? `<br><img src="${d.画像}" class="menu-img">` : ''}
     `;
 
-    if (d.画像) {
-      html += `<br><img src="${d.画像}" class="menu-img">`;
-    }
-
-    div.innerHTML = html;
     container.appendChild(div);
   });
+}
+
+// =======================
+// 共通関数
+// =======================
+function resetSelect(select) {
+  select.innerHTML = '<option value="">すべて</option>';
+}
+
+function disableSelect(select) {
+  select.disabled = true;
+}
+
+function enableSelect(select) {
+  select.disabled = false;
 }
