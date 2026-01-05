@@ -40,28 +40,43 @@ document.getElementById('itemSelect').addEventListener('change', e => {
 
 // 検索・表示
 document.getElementById('searchBtn').addEventListener('click', () => {
-  const selectedItem = document.getElementById('itemSelect').value;
-  const selectedCategory = document.getElementById('categorySelect').value;
   const keyword = document.getElementById('searchInput').value.trim();
+  const container = document.getElementById('result');
+  container.innerHTML = '';
 
-  let results = [];
-
-  if (!selectedItem) {
-    results = [];
-  } else if (typeof data[selectedItem] === 'object' && !Array.isArray(data[selectedItem])) {
-    if (selectedCategory) {
-      results = data[selectedItem][selectedCategory];
-      if (keyword) results = results.filter(d => d.メニュー.includes(keyword) || d.内容.includes(keyword));
-    } else {
-      results = [];
-    }
-  } else if (Array.isArray(data[selectedItem])) {
-    results = data[selectedItem];
-    if (keyword) results = results.filter(d => d.メニュー.includes(keyword) || d.内容.includes(keyword));
+  if (!keyword) {
+    container.textContent = '検索ワードを入力してください';
+    return;
   }
 
-  displayResults(results);
+  const results = [];
+
+  Object.entries(data).forEach(([itemName, itemValue]) => {
+
+    // 配列（値段など）
+    if (Array.isArray(itemValue)) {
+      itemValue.forEach(d => {
+        if (d.メニュー.includes(keyword) || d.内容.includes(keyword)) {
+          results.push({ item: itemName, category: '', ...d });
+        }
+      });
+    }
+
+    // オブジェクト（セット・弁当・ステーキなど）
+    else {
+      Object.entries(itemValue).forEach(([categoryName, list]) => {
+        list.forEach(d => {
+          if (d.メニュー.includes(keyword) || d.内容.includes(keyword)) {
+            results.push({ item: itemName, category: categoryName, ...d });
+          }
+        });
+      });
+    }
+  });
+
+  displayAllResults(results);
 });
+
 
 function displayResults(results) {
   const container = document.getElementById('result');
